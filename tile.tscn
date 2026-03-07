@@ -1,0 +1,19 @@
+[gd_scene format=3 uid="uid://c4vtkdxo7ff5s"]
+
+[ext_resource type="Script" uid="uid://bf18r8qhp1ci" path="res://Scripts/Tile.cs" id="1_xnwkc"]
+[ext_resource type="Texture2D" uid="uid://bsbb8shtp4bd0" path="res://Texture/cell.png" id="2_pqr6u"]
+
+[node name="Tile" type="Node2D" unique_id=1300535404 node_paths=PackedStringArray("_sprite")]
+script = ExtResource("1_xnwkc")
+_sprite = NodePath("Sprite2D")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1287821737]
+texture_filter = 3
+texture = ExtResource("2_pqr6u")
+
+[node name="Sprite2DHilight" type="Sprite2D" parent="." unique_id=1410880777]
+visible = false
+modulate = Color(0.7882353, 0.78039217, 0, 0.72156864)
+z_index = 1
+texture_filter = 3
+texture = ExtResource("2_pqr6u")

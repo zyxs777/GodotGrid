@@ -1,0 +1,13 @@
+[gd_scene format=3 uid="uid://dx5b4x2uvl8y8"]
+
+[ext_resource type="Script" uid="uid://hv82jcd1i3dj" path="res://Scripts/BattleRoot.cs" id="1_0xm2m"]
+[ext_resource type="PackedScene" uid="uid://c4vtkdxo7ff5s" path="res://tile.tscn" id="2_h2yge"]
+
+[node name="BoardRoot" type="Node2D" unique_id=298181189 node_paths=PackedStringArray("_camera2D")]
+script = ExtResource("1_0xm2m")
+_tileScene = ExtResource("2_h2yge")
+_camera2D = NodePath("Camera")
+
+[node name="Board" type="Node2D" parent="." unique_id=1371763624]
+
+[node name="Camera" type="Camera2D" parent="." unique_id=2044815201]

@@ -1,0 +1,19 @@
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Grid", "Grid.csproj", "{B8602D09-FC32-4237-B12A-2EAEEE0859CD}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+	Debug|Any CPU = Debug|Any CPU
+	ExportDebug|Any CPU = ExportDebug|Any CPU
+	ExportRelease|Any CPU = ExportRelease|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B8602D09-FC32-4237-B12A-2EAEEE0859CD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B8602D09-FC32-4237-B12A-2EAEEE0859CD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B8602D09-FC32-4237-B12A-2EAEEE0859CD}.ExportDebug|Any CPU.ActiveCfg = ExportDebug|Any CPU
+		{B8602D09-FC32-4237-B12A-2EAEEE0859CD}.ExportDebug|Any CPU.Build.0 = ExportDebug|Any CPU
+		{B8602D09-FC32-4237-B12A-2EAEEE0859CD}.ExportRelease|Any CPU.ActiveCfg = ExportRelease|Any CPU
+		{B8602D09-FC32-4237-B12A-2EAEEE0859CD}.ExportRelease|Any CPU.Build.0 = ExportRelease|Any CPU
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://jp7atcdm556u"]
+
+[ext_resource type="Script" uid="uid://hv82jcd1i3dj" path="res://Scripts/BattleRoot.cs" id="1_alge6"]
+[ext_resource type="PackedScene" uid="uid://c4vtkdxo7ff5s" path="res://tile.tscn" id="2_74yt6"]
+
+[node name="BattleRoot" type="Node2D" unique_id=780452379]
+script = ExtResource("1_alge6")
+_tileScene = ExtResource("2_74yt6")

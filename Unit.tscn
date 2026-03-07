@@ -1,0 +1,9 @@
+[gd_scene format=3 uid="uid://ckindg23hyt4y"]
+
+[ext_resource type="Texture2D" uid="uid://cljk1hauwg6iu" path="res://Texture/warrior.png" id="1_c58w5"]
+
+[node name="Unit" type="Node2D" unique_id=1738604337]
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1230732270]
+texture_filter = 3
+texture = ExtResource("1_c58w5")
