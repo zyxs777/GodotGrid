@@ -1,0 +1,5 @@
+[gd_scene format=3 uid="uid://8e7swbbjxxle"]
+
+[ext_resource type="PackedScene" uid="uid://g248vqvc6758" path="res://Unit.tscn" id="1_u4wda"]
+
+[node name="KnightUnit" unique_id=1515707500 instance=ExtResource("1_u4wda")]

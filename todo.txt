@@ -1,0 +1,55 @@
+Priority expansion ideas
+
+Current state
+- Move priority is computed inside `ChaseNearestEnemyStrategy`.
+- Current formula: `currentDistance - nextDistance`.
+- Resolver uses larger priority first, then falls back to `Unit.GetInstanceId()`.
+
+Possible next extensions
+- Add a base move priority stat on `Unit`.
+- Compute final priority as: `basePriority + tacticalPriority`.
+- Allow different unit classes to have different priority weights.
+- Let move speed or agility affect priority.
+- Let body size, weight, or collision rank affect priority.
+- Let current state affect priority: stunned, rooted, charging, casting, taunted.
+- Let behavior type affect priority: chase, retreat, hold, flank, dash.
+- Let skills temporarily override or boost move priority.
+- Add team-wide modifiers such as formation bonus or front-line preference.
+- Add threat or aggro based tactical priority.
+- Add low-health escape priority for retreat behavior.
+- Add target importance bonus, for example chasing healer or ranged unit.
+- Add terrain modifiers such as narrow tile, choke point, or hazard avoidance.
+- Add tie-break rules beyond instance id, for example initiative stat or spawn order.
+
+Resolver-level ideas
+- Support chain movement if destination becomes empty in the same resolution step.
+- Support swap rules for specific movement types.
+- Support blocking rules for tanks or large units.
+- Support reserved tiles for skill targeting or channeling.
+- Add deterministic multi-pass resolution instead of single destination winner selection.
+
+Design note
+- Keep priority split into two parts.
+- Base priority from unit attributes and state.
+- Tactical priority from the current decision.
+- This keeps gameplay tuning separate from pathfinding heuristics.
+
+Combat note
+- Current attack range checks use `GridPos`, not continuous world position.
+- A moving unit may look like it has already left a tile, while combat logic still treats it as being on the previous tile until waypoint commit.
+- This can create visual and gameplay judgement mismatch for ranged attacks.
+- Decide later whether combat should stay grid-logic-first or become presentation-accurate.
+- Option A: keep `GridPos` for deterministic auto-battler combat.
+- Option B: switch attack range checks from `GridPos` to `GlobalPosition`.
+- Option C: add projectile logic so hit timing and visual travel are explicit.
+- If switching to world-position combat later, review target selection, hit timing, and movement conflict rules together.
+
+Health bar note
+- Consider smooth interpolation instead of instant width change when health updates.
+- Show the health bar only when damaged, selected, or hovered, instead of always visible.
+- Add delayed damage bar effect to show recent lost health.
+- Add floating damage numbers for stronger hit feedback.
+- Add simple hit flash or shake when taking damage.
+- Consider hiding the bar after a short timeout if the unit is out of combat.
+- Decide later whether allies and enemies should use different bar colors or styles.
+- If ranged/projectile combat is added later, sync health bar change timing with actual hit timing.
