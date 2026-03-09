@@ -1,0 +1,34 @@
+[gd_scene format=3 uid="uid://gpal3adhrchj"]
+
+[ext_resource type="Texture2D" uid="uid://omiimb1a3e2d" path="res://Texture/staff_bullet.png" id="1_6b4w6"]
+[ext_resource type="Script" uid="uid://bs20l8t3gpmi4" path="res://Scripts/Projectile.cs" id="1_g0jml"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_g0jml"]
+size = Vector2(87, 44)
+
+[sub_resource type="Curve" id="Curve_g0jml"]
+_data = [Vector2(0.004983388, 0.9422052), 0.0, 0.0, 0, 0, Vector2(1, 0.04376912), 0.0, 0.0, 0, 0]
+point_count = 2
+metadata/_snap_enabled = true
+
+[node name="MageStaffBullet" type="Node2D" unique_id=1670708092]
+script = ExtResource("1_g0jml")
+
+[node name="Area2D" type="Area2D" parent="." unique_id=530747005]
+scale = Vector2(0.5, 0.5)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D" unique_id=5122346]
+position = Vector2(2.5, 2)
+shape = SubResource("RectangleShape2D_g0jml")
+
+[node name="Visual" type="Node2D" parent="." unique_id=1127229002]
+scale = Vector2(0.5, 0.5)
+
+[node name="Sprite2D" type="Sprite2D" parent="Visual" unique_id=247874425]
+texture_filter = 3
+texture = ExtResource("1_6b4w6")
+
+[node name="Line2D" type="Line2D" parent="." unique_id=1934016300]
+points = PackedVector2Array(-13, 2, -80, 3)
+width_curve = SubResource("Curve_g0jml")
+default_color = Color(0.6745098, 0.19607843, 0.19607843, 1)

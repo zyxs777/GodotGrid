@@ -1,4 +1,4 @@
-﻿using Godot;
+using Godot;
 using System.Collections.Generic;
 
 public enum UnitFacing
@@ -23,13 +23,24 @@ public partial class Unit : Node2D
     [Export(PropertyHint.Range, "1,10,1")] private int _maxAttackRange = 1;
     [Export(PropertyHint.Range, "0,20,1")] private int _targetLoseRange = 0;
     [Export] private UnitFacing _defaultFacing = UnitFacing.Right;
-    [Export] private string _attackAnimationName = "KnightAtk";
-
+    [Export] private string _attackAnimationName = string.Empty;
+    [Export] private Color _hitFlashColor = new Color(1f, 0.25f, 0.25f, 1f);
+    [Export(PropertyHint.Range, "0.01,0.5,0.01")] private float _hitFlashDuration = 0.12f;
+    [Export] private int _healthBarZOffset = 4;
+    [Export] private int _chooseZOffset = 1;
+    [Export] private int _weaponZOffset = 2;
+    [Export] private int _mainZOffset = 3;
+    
     private Area2D _clickArea;
+    private CollisionShape2D _collisionShape;
+    private Node2D _visualRoot;
+    private Sprite2D _mainSprite;
+    private Sprite2D _weaponSprite;
     private Sprite2D _choosedSprite;
     private Control _healthBar;
     private ColorRect _healthBarFill;
     private AnimationPlayer _animationPlayer;
+    private Tween _hitFlashTween;
     private Vector2 _healthBarFillBaseSize;
     private Vector2 _baseScale = Vector2.One;
     private readonly List<Vector2I> _moveGridPath = new();
@@ -40,6 +51,7 @@ public partial class Unit : Node2D
     private float _attackCooldownRemaining;
     private bool _isAttackAnimating;
     private Unit _queuedAttackTarget;
+    private string _currentAttackAnimationName = string.Empty;
 
     public Vector2I GridPos { get; private set; }
     public UnitTeam Team => _team;
@@ -49,13 +61,32 @@ public partial class Unit : Node2D
     public bool IsAlive { get; private set; } = true;
     public bool IsAttacking => _isAttackAnimating;
     public int CurrentHealth { get; private set; }
+    protected int AttackPower => _attackPower;
     public int MaxAttackRange => _maxAttackRange;
     public int TargetLoseRange => _targetLoseRange > 0 ? _targetLoseRange : _maxAttackRange;
     public UnitFacing Facing { get; private set; } = UnitFacing.Right;
 
+    protected virtual string PeekAttackAnimationName()
+    {
+        return _attackAnimationName;
+    }
+
+    protected virtual string ConsumeAttackAnimationName()
+    {
+        return PeekAttackAnimationName();
+    }
+
+    protected virtual void ResetAttackSequence()
+    {
+    }
+
     public override void _Ready()
     {
         _clickArea = GetNode<Area2D>("ClickArea");
+        _collisionShape = GetNodeOrNull<CollisionShape2D>("ClickArea/CollisionShape2D");
+        _visualRoot = GetNode<Node2D>("Visual");
+        _mainSprite = GetNodeOrNull<Sprite2D>("Visual/Sprite2D");
+        _weaponSprite = GetNodeOrNull<Sprite2D>("Visual/Weapon");
         _choosedSprite = GetNode<Sprite2D>("Visual/Choose");
         _healthBar = GetNode<Control>("Visual/HealthBar");
         _healthBarFill = GetNode<ColorRect>("Visual/HealthBar/Fill");
@@ -78,11 +109,21 @@ public partial class Unit : Node2D
         _attackCooldownRemaining = 0f;
         _isAttackAnimating = false;
         _queuedAttackTarget = null;
+        _currentAttackAnimationName = string.Empty;
+        ResetAttackSequence();
 
         SetSelected(false);
+        ConfigureCanvasLayers();
         Facing = InferFacingFromScale(Scale.X);
         ApplyFacing(Facing);
+        UpdateRenderOrder();
         UpdateHealthBar();
+        ResetHitFlashVisuals();
+    }
+
+    public override void _Process(double delta)
+    {
+        UpdateRenderOrder();
     }
 
     private void OnClickAreaInputEvent(Node viewport, InputEvent @event, long shapeIdx)
@@ -97,13 +138,14 @@ public partial class Unit : Node2D
 
     private void OnAnimationFinished(StringName animationName)
     {
-        if (animationName != _attackAnimationName)
+        if (animationName != _currentAttackAnimationName)
         {
             return;
         }
 
         _isAttackAnimating = false;
         _queuedAttackTarget = null;
+        _currentAttackAnimationName = string.Empty;
     }
 
     public void SetSelected(bool selected)
@@ -186,11 +228,17 @@ public partial class Unit : Node2D
     {
         CurrentTarget = null;
         _queuedAttackTarget = null;
+        _currentAttackAnimationName = string.Empty;
         _isAttackAnimating = false;
     }
 
     public void TickCombat(float delta)
     {
+        if (HasAttackAnimationConfigured())
+        {
+            return;
+        }
+
         if (_attackCooldownRemaining <= 0f)
         {
             return;
@@ -211,21 +259,20 @@ public partial class Unit : Node2D
         }
 
         _queuedAttackTarget = target;
-        float attacksPerSecond = Mathf.Max(0.1f, _attackSpeed);
-        _attackCooldownRemaining = 1f / attacksPerSecond;
+        _currentAttackAnimationName = ConsumeAttackAnimationName();
         _isAttackAnimating = true;
 
-        if (_animationPlayer != null && _animationPlayer.HasAnimation(_attackAnimationName))
+        if (TryPlayAttackAnimation(_currentAttackAnimationName))
         {
-            _animationPlayer.Play(_attackAnimationName);
-        }
-        else
-        {
-            ResolveAttackHit();
-            _isAttackAnimating = false;
-            _queuedAttackTarget = null;
+            return true;
         }
 
+        float attacksPerSecond = Mathf.Max(0.1f, _attackSpeed);
+        _attackCooldownRemaining = 1f / attacksPerSecond;
+        ResolveAttackHit();
+        _isAttackAnimating = false;
+        _queuedAttackTarget = null;
+        _currentAttackAnimationName = string.Empty;
         return true;
     }
 
@@ -237,12 +284,12 @@ public partial class Unit : Node2D
         }
 
         Unit target = _queuedAttackTarget;
-        if (!CanDamageTarget(target))
+        if (!CanResolveAttackHit(target))
         {
             return;
         }
 
-        target.TakeDamage(_attackPower);
+        PerformAttackHit(target);
     }
 
     public bool TryAttack(Unit target)
@@ -264,6 +311,11 @@ public partial class Unit : Node2D
         }
 
         int finalDamage = Mathf.Max(0, damage);
+        if (finalDamage > 0)
+        {
+            PlayHitFlash();
+        }
+
         CurrentHealth -= finalDamage;
 
         if (CurrentHealth > 0)
@@ -277,6 +329,7 @@ public partial class Unit : Node2D
         ClearMovePath();
         ClearTarget();
         UpdateHealthBar();
+        ResetHitFlashVisuals();
     }
 
     public void SetCurrentTarget(Unit target)
@@ -330,10 +383,14 @@ public partial class Unit : Node2D
         _previousGridPos = default;
         _attackCooldownRemaining = 0f;
         _queuedAttackTarget = null;
+        _currentAttackAnimationName = string.Empty;
         _isAttackAnimating = false;
+        ResetAttackSequence();
+        ResetHitFlashVisuals();
         if (_animationPlayer != null)
         {
             _animationPlayer.Stop();
+            _animationPlayer.SpeedScale = 1f;
         }
     }
 
@@ -403,6 +460,50 @@ public partial class Unit : Node2D
         ApplyFacing(facing);
     }
 
+    protected virtual bool CanResolveAttackHit(Unit target)
+    {
+        return CanDamageTarget(target);
+    }
+
+    protected virtual void PerformAttackHit(Unit target)
+    {
+        target.TakeDamage(_attackPower);
+    }
+
+    protected bool IsValidEnemyTarget(Unit target)
+    {
+        return target != null && target.IsAlive && IsEnemyOf(target);
+    }
+
+    public Vector2 GetTargetPointGlobalPosition()
+    {
+        if (_collisionShape != null)
+        {
+            return _collisionShape.GlobalPosition;
+        }
+
+        if (_mainSprite != null)
+        {
+            return _mainSprite.GlobalPosition;
+        }
+
+        return GlobalPosition;
+    }
+
+    protected Vector2 GetAttackOriginGlobalPosition()
+    {
+        if (_weaponSprite != null)
+        {
+            return _weaponSprite.GlobalPosition;
+        }
+
+        if (_mainSprite != null)
+        {
+            return _mainSprite.GlobalPosition;
+        }
+        return GlobalPosition;
+    }
+
     private bool CanStartAttack(Unit target)
     {
         if (!CanDamageTarget(target))
@@ -410,11 +511,43 @@ public partial class Unit : Node2D
             return false;
         }
 
-        if (_attackCooldownRemaining > 0f || _isAttackAnimating)
+        if (_isAttackAnimating)
         {
             return false;
         }
 
+        if (!HasAttackAnimationConfigured() && _attackCooldownRemaining > 0f)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool HasAttackAnimationConfigured()
+    {
+        string animationName = PeekAttackAnimationName();
+        return _animationPlayer != null && !string.IsNullOrWhiteSpace(animationName) && _animationPlayer.HasAnimation(animationName);
+    }
+
+    private bool TryPlayAttackAnimation(string animationName)
+    {
+        if (_animationPlayer == null || string.IsNullOrWhiteSpace(animationName) || !_animationPlayer.HasAnimation(animationName))
+        {
+            return false;
+        }
+
+        Animation animation = _animationPlayer.GetAnimation(animationName);
+        if (animation == null || animation.Length <= 0.0001f)
+        {
+            return false;
+        }
+
+        float attacksPerSecond = Mathf.Max(0.1f, _attackSpeed);
+        float desiredCycleDuration = 1f / attacksPerSecond;
+        float speedScale = Mathf.Max(0.01f, (float)(animation.Length / desiredCycleDuration));
+        _animationPlayer.SpeedScale = speedScale;
+        _animationPlayer.Play(animationName);
         return true;
     }
 
@@ -467,6 +600,68 @@ public partial class Unit : Node2D
         }
 
         return _defaultFacing == UnitFacing.Right ? UnitFacing.Left : UnitFacing.Right;
+    }
+
+    private void ConfigureCanvasLayers()
+    {
+        if (_mainSprite != null)
+        {
+            _mainSprite.ZAsRelative = true;
+            _mainSprite.ZIndex = _mainZOffset;
+        }
+
+        if (_weaponSprite != null)
+        {
+            _weaponSprite.ZAsRelative = true;
+            _weaponSprite.ZIndex = _weaponZOffset;
+        }
+
+        if (_choosedSprite != null)
+        {
+            _choosedSprite.ZAsRelative = true;
+            _choosedSprite.ZIndex = _chooseZOffset;
+        }
+
+        if (_healthBar != null)
+        {
+            _healthBar.ZAsRelative = true;
+            _healthBar.ZIndex = _healthBarZOffset;
+        }
+    }
+
+    private void UpdateRenderOrder()
+    {
+        ZAsRelative = false;
+        ZIndex = Mathf.RoundToInt(GlobalPosition.Y);
+    }
+
+    private void PlayHitFlash()
+    {
+        if (_mainSprite == null)
+        {
+            return;
+        }
+
+        _hitFlashTween?.Kill();
+        SetHitFlashColor(_hitFlashColor);
+
+        _hitFlashTween = CreateTween();
+        _hitFlashTween.TweenProperty(_mainSprite, "modulate", Colors.White, _hitFlashDuration);
+    }
+
+    private void SetHitFlashColor(Color color)
+    {
+        if (_mainSprite != null)
+        {
+            _mainSprite.Modulate = color;
+        }
+    }
+
+    private void ResetHitFlashVisuals()
+    {
+        _hitFlashTween?.Kill();
+        _hitFlashTween = null;
+        SetHitFlashColor(Colors.White);
     }
 
     private void UpdateHealthBar()

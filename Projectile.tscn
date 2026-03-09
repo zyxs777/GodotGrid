@@ -1,0 +1,11 @@
+[gd_scene format=3 uid="uid://bxr5spmv6ykwc"]
+
+[ext_resource type="Script" uid="uid://bs20l8t3gpmi4" path="res://Scripts/Projectile.cs" id="1_proj"]
+[ext_resource type="Texture2D" uid="uid://omiimb1a3e2d" path="res://Texture/staff_bullet.png" id="2_tex"]
+
+[node name="Projectile" type="Node2D" unique_id=535092657]
+script = ExtResource("1_proj")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=467337160]
+texture_filter = 3
+texture = ExtResource("2_tex")

@@ -1,0 +1,173 @@
+[gd_scene format=3 uid="uid://8e7swbbjxxle"]
+
+[ext_resource type="PackedScene" uid="uid://g248vqvc6758" path="res://Units/Unit.tscn" id="1_u4wda"]
+[ext_resource type="Script" uid="uid://byxsl1jnw7fjm" path="res://Scripts/KnightUnit.cs" id="2_knight_script"]
+[ext_resource type="Texture2D" uid="uid://cljk1hauwg6iu" path="res://Texture/warrior.png" id="3_warrior"]
+[ext_resource type="Texture2D" uid="uid://cnjjurisd5un7" path="res://Texture/sword.png" id="4_sword"]
+
+[sub_resource type="Animation" id="Animation_lvdn7"]
+resource_name = "KnightAtk"
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Visual/Weapon:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.3, 0.4238231, 0.53333336, 0.5358917),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(30, -2.0000048), Vector2(-14.999996, -65.99999), Vector2(62.000004, 2), Vector2(7, 64), Vector2(-17, 68)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Visual/Weapon:rotation")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.3, 0.53333336),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [0.1134464, -1.1815879, 2.7855456]
+}
+tracks/2/type = "method"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath(".")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0.3),
+"transitions": PackedFloat32Array(1),
+"values": [{
+"args": [],
+"method": &"ResolveAttackHit"
+}]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Visual/Sprite2D:rotation")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0, 0.3, 0.53333336, 0.8333333, 1),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [0.0, 0.0, 0.30892327, 0.0, 0.0]
+}
+
+[sub_resource type="Animation" id="Animation_6l8u6"]
+resource_name = "KnightAtk1"
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Visual/Weapon:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.20020661, 0.3061624, 0.4, 1),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(7, 64), Vector2(-24, 63.999992), Vector2(50, -2), Vector2(-21, -60.999996), Vector2(30, -2.0000048)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Visual/Weapon:rotation")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.20020661, 0.3061624, 0.4, 1),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [2.7855456, 3.2742376, 0.95654845, -1.0960667, 0.1134464]
+}
+tracks/2/type = "method"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath(".")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0.4),
+"transitions": PackedFloat32Array(1),
+"values": [{
+"args": [],
+"method": &"ResolveAttackHit"
+}]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Visual/Sprite2D:rotation")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(-0.0015168786, 0, 0.20224422, 0.4, 0.6810828, 1),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [0.17976892, 0.0, 0.0, -0.1972222, 0.0, 0.0]
+}
+
+[sub_resource type="Animation" id="Animation_d172s"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Visual/Weapon:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(30, -2.0000048)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Visual/Weapon:rotation")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [0.1134464]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Visual/Sprite2D:rotation")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [0.0]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_i4nis"]
+_data = {
+&"KnightAtk": SubResource("Animation_lvdn7"),
+&"KnightAtk1": SubResource("Animation_6l8u6"),
+&"RESET": SubResource("Animation_d172s")
+}
+
+[node name="KnightUnit" unique_id=1515707500 instance=ExtResource("1_u4wda")]
+script = ExtResource("2_knight_script")
+_attackAnimationNames = PackedStringArray("KnightAtk", "KnightAtk1")
+
+[node name="Sprite2D" parent="Visual" parent_id_path=PackedInt32Array(1929483134) index="0" unique_id=408530905]
+texture = ExtResource("3_warrior")
+
+[node name="Weapon" parent="Visual" parent_id_path=PackedInt32Array(1929483134) index="2" unique_id=1771046140]
+position = Vector2(30, -2.0000048)
+rotation = 0.1134464
+texture = ExtResource("4_sword")
+
+[node name="AnimationPlayer" parent="." index="2" unique_id=485606975]
+libraries/ = SubResource("AnimationLibrary_i4nis")

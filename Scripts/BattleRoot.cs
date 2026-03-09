@@ -212,10 +212,10 @@ public partial class BattleRoot : Node2D
             return;
         }
 
-        if (unit.Team != UnitTeam.Player)
+        /*if (unit.Team != UnitTeam.Player)
         {
             return;
-        }
+        }*/
 
         _draggingUnit = unit;
         _dragStartGrid = unit.GridPos;
