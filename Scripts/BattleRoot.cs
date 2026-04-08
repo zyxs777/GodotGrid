@@ -1,8 +1,13 @@
-﻿using Godot;
+using Godot;
 using System.Collections.Generic;
 
 public partial class BattleRoot : Node2D
 {
+    public enum GridDistanceMetric
+    {
+        Manhattan,
+        Chebyshev
+    }
     private enum BattlePhase
     {
         Placement,
@@ -18,6 +23,7 @@ public partial class BattleRoot : Node2D
     [Export] private float _tileWidth = 128f;
     [Export] private float _tileHeight = 64f;
     [Export(PropertyHint.Range, "0.02,1,0.01")] private float _battleStepInterval = 0.08f;
+    [Export] private GridDistanceMetric _attackDistanceMetric = GridDistanceMetric.Manhattan;
 
     private Node2D _board;
     private Node2D _unitsRoot;
@@ -26,6 +32,7 @@ public partial class BattleRoot : Node2D
     private readonly Dictionary<Vector2I, Unit> _unitsByGridPos = new();
 
     private Tile _highlightedTile;
+    private readonly List<Tile> _rangeHighlightedTiles = new();
     private Unit _selectedUnit;
 
     private Unit _draggingUnit;
@@ -35,6 +42,12 @@ public partial class BattleRoot : Node2D
     private BattlePhase _currentPhase = BattlePhase.Placement;
     private float _battleStepElapsed;
     private readonly HashSet<Unit> _pendingStepUnits = new();
+    private readonly List<Unit> _allUnitsBuffer = new();
+    private readonly List<Unit> _decisionOrderBuffer = new();
+    private readonly List<MoveIntent> _moveIntentsBuffer = new();
+    private int _decisionOrderCursor;
+
+    public static GridDistanceMetric ActiveAttackDistanceMetric { get; private set; } = GridDistanceMetric.Manhattan;
 
     // Battle loop pipeline: strategy decides, resolver arbitrates, root executes.
     private readonly ChaseNearestEnemyStrategy _decisionStrategy = new();
@@ -43,6 +56,7 @@ public partial class BattleRoot : Node2D
     public override void _Ready()
     {
         SetProcessUnhandledInput(true);
+        SyncAttackDistanceMetric();
 
         _board = GetNode<Node2D>("Board");
         _unitsRoot = GetNode<Node2D>("Units");
@@ -102,6 +116,8 @@ public partial class BattleRoot : Node2D
 
     public override void _Process(double delta)
     {
+        SyncAttackDistanceMetric();
+
         if (_currentPhase != BattlePhase.Battle)
         {
             return;
@@ -126,6 +142,20 @@ public partial class BattleRoot : Node2D
         CleanupDefeatedUnits();
     }
 
+    private void SyncAttackDistanceMetric()
+    {
+        ActiveAttackDistanceMetric = _attackDistanceMetric;
+    }
+
+    public static int GetGridDistance(Vector2I a, Vector2I b)
+    {
+        int dx = Mathf.Abs(a.X - b.X);
+        int dy = Mathf.Abs(a.Y - b.Y);
+
+        return ActiveAttackDistanceMetric == GridDistanceMetric.Chebyshev
+            ? Mathf.Max(dx, dy)
+            : dx + dy;
+    }
     private void GenerateBoard()
     {
         _tilesByGridPos.Clear();
@@ -199,13 +229,20 @@ public partial class BattleRoot : Node2D
             return;
         }
 
-        if (_selectedUnit != null && _selectedUnit != unit)
+        if (_selectedUnit == unit)
         {
-            _selectedUnit.SetSelected(false);
+            ClearSelectedUnit();
+            return;
+        }
+
+        if (_selectedUnit != null)
+        {
+            ClearSelectedUnit();
         }
 
         _selectedUnit = unit;
         _selectedUnit.SetSelected(true);
+        ShowSelectedUnitAttackRange(_selectedUnit);
 
         if (_currentPhase != BattlePhase.Placement)
         {
@@ -232,6 +269,7 @@ public partial class BattleRoot : Node2D
         }
 
         _draggingUnit.GlobalPosition = GetGlobalMousePosition() + _dragMouseOffset;
+        UpdateDragHighlight();
     }
 
     private void UpdateDragHighlight()
@@ -239,6 +277,10 @@ public partial class BattleRoot : Node2D
         if (_draggingUnit == null)
         {
             ClearHighlightedTile();
+            if (_selectedUnit != null)
+            {
+                ShowSelectedUnitAttackRange(_selectedUnit);
+            }
             return;
         }
 
@@ -247,10 +289,12 @@ public partial class BattleRoot : Node2D
         if (TryWorldToGrid(boardLocalPos, out Vector2I grid))
         {
             HighlightTile(grid);
+            ShowSelectedUnitAttackRange(_draggingUnit, grid);
         }
         else
         {
             ClearHighlightedTile();
+            ClearSelectedUnitAttackRange();
         }
     }
 
@@ -316,6 +360,11 @@ public partial class BattleRoot : Node2D
     {
         ClearHighlightedTile();
         _draggingUnit = null;
+
+        if (_selectedUnit != null)
+        {
+            ShowSelectedUnitAttackRange(_selectedUnit);
+        }
     }
 
     private void HighlightTile(Vector2I gridPos)
@@ -333,11 +382,11 @@ public partial class BattleRoot : Node2D
 
         if (_highlightedTile != null)
         {
-            _highlightedTile.SetHighlighted(false);
+            _highlightedTile.SetCursorHighlighted(false);
         }
 
         _highlightedTile = tile;
-        _highlightedTile.SetHighlighted(true);
+        _highlightedTile.SetCursorHighlighted(true);
     }
 
     private void ClearHighlightedTile()
@@ -347,7 +396,7 @@ public partial class BattleRoot : Node2D
             return;
         }
 
-        _highlightedTile.SetHighlighted(false);
+        _highlightedTile.SetCursorHighlighted(false);
         _highlightedTile = null;
     }
 
@@ -359,22 +408,81 @@ public partial class BattleRoot : Node2D
         }
 
         _selectedUnit.SetSelected(false);
+        ClearSelectedUnitAttackRange();
         _selectedUnit = null;
+    }
+
+    private void ShowSelectedUnitAttackRange(Unit unit)
+    {
+        if (unit == null)
+        {
+            ClearSelectedUnitAttackRange();
+            return;
+        }
+
+        ShowSelectedUnitAttackRange(unit, unit.GridPos);
+    }
+
+    private void ShowSelectedUnitAttackRange(Unit unit, Vector2I originGrid)
+    {
+        ClearSelectedUnitAttackRange();
+
+        if (unit == null)
+        {
+            return;
+        }
+
+        int range = unit.MaxAttackRange;
+        if (range <= 0)
+        {
+            return;
+        }
+
+        for (int y = 0; y < _boardHeight; y++)
+        {
+            for (int x = 0; x < _boardWidth; x++)
+            {
+                Vector2I gridPos = new(x, y);
+                int distance = GetGridDistance(gridPos, originGrid);
+                if (distance == 0 || distance > range)
+                {
+                    continue;
+                }
+
+                if (!_tilesByGridPos.TryGetValue(gridPos, out Tile tile))
+                {
+                    continue;
+                }
+
+                tile.SetRangeHighlighted(true);
+                _rangeHighlightedTiles.Add(tile);
+            }
+        }
+    }
+
+    private void ClearSelectedUnitAttackRange()
+    {
+        foreach (Tile tile in _rangeHighlightedTiles)
+        {
+            tile?.SetRangeHighlighted(false);
+        }
+
+        _rangeHighlightedTiles.Clear();
     }
 
     private List<Unit> GetAllUnits()
     {
-        List<Unit> units = new();
+        _allUnitsBuffer.Clear();
 
         foreach (Node child in _unitsRoot.GetChildren())
         {
             if (child is Unit unit && unit.IsAlive)
             {
-                units.Add(unit);
+                _allUnitsBuffer.Add(unit);
             }
         }
 
-        return units;
+        return _allUnitsBuffer;
     }
 
     private void ExecuteBattleDecisionStep()
@@ -385,10 +493,11 @@ public partial class BattleRoot : Node2D
             return;
         }
 
-        BattleSnapshot snapshot = new(_boardWidth, _boardHeight, allUnits);
-        List<MoveIntent> intents = new();
+        List<Unit> decisionOrder = BuildDecisionOrder(allUnits);
+        BattleSnapshot snapshot = new(_boardWidth, _boardHeight, decisionOrder);
+        _moveIntentsBuffer.Clear();
 
-        foreach (Unit unit in allUnits)
+        foreach (Unit unit in decisionOrder)
         {
             UnitDecision decision = _decisionStrategy.Decide(unit, snapshot);
             Unit preferredTarget = decision.AttackTarget ?? decision.PrimaryTarget;
@@ -403,6 +512,7 @@ public partial class BattleRoot : Node2D
 
                 continue;
             }
+
             if (preferredTarget != null && decision.MoveDestination is not Vector2I)
             {
                 unit.FaceTarget(preferredTarget);
@@ -413,14 +523,20 @@ public partial class BattleRoot : Node2D
                 continue;
             }
 
-            intents.Add(new MoveIntent(
+            _moveIntentsBuffer.Add(new MoveIntent(
                 unit,
                 unit.GridPos,
                 moveDestination,
                 decision.MovePriority));
+            snapshot.ReserveMove(unit, moveDestination);
         }
 
-        Dictionary<Unit, Vector2I> resolvedMoves = _moveResolver.Resolve(intents, snapshot);
+        if (decisionOrder.Count > 0)
+        {
+            _decisionOrderCursor = (_decisionOrderCursor + 1) % decisionOrder.Count;
+        }
+
+        Dictionary<Unit, Vector2I> resolvedMoves = _moveResolver.Resolve(_moveIntentsBuffer, snapshot);
         _pendingStepUnits.Clear();
 
         foreach (KeyValuePair<Unit, Vector2I> move in resolvedMoves)
@@ -431,6 +547,40 @@ public partial class BattleRoot : Node2D
             unit.BeginStepMove(toGrid, toWorld);
             _pendingStepUnits.Add(unit);
         }
+    }
+
+    private List<Unit> BuildDecisionOrder(List<Unit> allUnits)
+    {
+        _decisionOrderBuffer.Clear();
+        _decisionOrderBuffer.AddRange(allUnits);
+        _decisionOrderBuffer.Sort(static (a, b) => a.GetInstanceId().CompareTo(b.GetInstanceId()));
+
+        if (_decisionOrderBuffer.Count <= 1)
+        {
+            _decisionOrderCursor = 0;
+            return _decisionOrderBuffer;
+        }
+
+        if (_decisionOrderCursor < 0 || _decisionOrderCursor >= _decisionOrderBuffer.Count)
+        {
+            _decisionOrderCursor = 0;
+        }
+
+        if (_decisionOrderCursor == 0)
+        {
+            return _decisionOrderBuffer;
+        }
+
+        List<Unit> rotated = new(_decisionOrderBuffer.Count);
+        for (int i = 0; i < _decisionOrderBuffer.Count; i++)
+        {
+            int index = (i + _decisionOrderCursor) % _decisionOrderBuffer.Count;
+            rotated.Add(_decisionOrderBuffer[index]);
+        }
+
+        _decisionOrderBuffer.Clear();
+        _decisionOrderBuffer.AddRange(rotated);
+        return _decisionOrderBuffer;
     }
 
     private bool UpdateAllUnitsMovement(float delta)
@@ -545,6 +695,7 @@ public partial class BattleRoot : Node2D
 
             if (_selectedUnit == deadUnit)
             {
+                ClearSelectedUnitAttackRange();
                 _selectedUnit = null;
             }
 
@@ -567,6 +718,7 @@ public partial class BattleRoot : Node2D
     {
         _currentPhase = BattlePhase.Placement;
         _pendingStepUnits.Clear();
+        _decisionOrderCursor = 0;
 
         foreach (Unit unit in GetAllUnits())
         {
@@ -580,6 +732,7 @@ public partial class BattleRoot : Node2D
     private void EnterBattlePhase()
     {
         _currentPhase = BattlePhase.Battle;
+        _decisionOrderCursor = 0;
 
         if (_draggingUnit != null)
         {

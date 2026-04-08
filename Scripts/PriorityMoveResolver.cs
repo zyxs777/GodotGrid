@@ -11,7 +11,8 @@ public sealed class PriorityMoveResolver : IMoveResolver
             return resolvedMoves;
         }
 
-        Dictionary<Vector2I, MoveIntent> bestIntentByDestination = new();
+        List<MoveIntent> candidateIntents = new();
+        Dictionary<Unit, MoveIntent> candidateByUnit = new();
 
         foreach (MoveIntent intent in intents)
         {
@@ -36,6 +37,19 @@ public sealed class PriorityMoveResolver : IMoveResolver
                 continue;
             }
 
+            candidateIntents.Add(intent);
+            candidateByUnit[intent.Unit] = intent;
+        }
+
+        Dictionary<Vector2I, MoveIntent> bestIntentByDestination = new();
+
+        foreach (MoveIntent intent in candidateIntents)
+        {
+            if (ShouldSuppressForMutualMeleeApproach(intent, candidateByUnit))
+            {
+                continue;
+            }
+
             if (!bestIntentByDestination.TryGetValue(intent.ToGrid, out MoveIntent bestIntent))
             {
                 bestIntentByDestination[intent.ToGrid] = intent;
@@ -55,6 +69,41 @@ public sealed class PriorityMoveResolver : IMoveResolver
         }
 
         return resolvedMoves;
+    }
+
+    private static bool ShouldSuppressForMutualMeleeApproach(
+        MoveIntent intent,
+        IReadOnlyDictionary<Unit, MoveIntent> candidateByUnit)
+    {
+        if (BattleRoot.ActiveAttackDistanceMetric != BattleRoot.GridDistanceMetric.Manhattan)
+        {
+            return false;
+        }
+
+        Unit unit = intent.Unit;
+        if (unit == null || unit.MaxAttackRange != 1)
+        {
+            return false;
+        }
+
+        Unit target = unit.CurrentTarget;
+        if (target == null || target.CurrentTarget != unit || target.MaxAttackRange != 1)
+        {
+            return false;
+        }
+
+        if (!candidateByUnit.TryGetValue(target, out MoveIntent targetIntent))
+        {
+            return false;
+        }
+
+        int currentDistance = BattleRoot.GetGridDistance(unit.GridPos, target.GridPos);
+        if (currentDistance > 3)
+        {
+            return false;
+        }
+
+        return unit.GetInstanceId() > targetIntent.Unit.GetInstanceId();
     }
 
     private static bool IsHigherPriority(MoveIntent contender, MoveIntent current)

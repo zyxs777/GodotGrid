@@ -9,6 +9,7 @@ public enum UnitFacing
 
 public partial class Unit : Node2D
 {
+    private const string ResetAnimationName = "RESET";
     [Signal]
     public delegate void ClickedEventHandler(Unit unit);
 
@@ -17,6 +18,7 @@ public partial class Unit : Node2D
     [Export] private Color _enemySelectedColor = new Color(1f, 0.35f, 0.35f, 1f);
     [Export] private Color _normalSelectedColor = Colors.White;
     [Export(PropertyHint.Range, "10,1000,1")] private float _moveSpeed = 240f;
+    [Export(PropertyHint.Range, "0,128,1")] private float _jumpArcHeight = 28f;
     [Export(PropertyHint.Range, "1,10000,1")] private int _maxHealth = 100;
     [Export(PropertyHint.Range, "1,1000,1")] private int _attackPower = 20;
     [Export(PropertyHint.Range, "0.1,10,0.1")] private float _attackSpeed = 1f;
@@ -46,6 +48,11 @@ public partial class Unit : Node2D
     private readonly List<Vector2I> _moveGridPath = new();
     private readonly List<Vector2> _moveWorldPath = new();
     private int _movePathIndex;
+    private bool _isJumpStepActive;
+    private Vector2 _jumpStepStartWorld;
+    private Vector2 _jumpStepTargetWorld;
+    private float _jumpStepDuration;
+    private float _jumpStepElapsed;
     private bool _hasPreviousGridPos;
     private Vector2I _previousGridPos;
     private float _attackCooldownRemaining;
@@ -110,6 +117,7 @@ public partial class Unit : Node2D
         _isAttackAnimating = false;
         _queuedAttackTarget = null;
         _currentAttackAnimationName = string.Empty;
+        RestoreDefaultAnimationPose();
         ResetAttackSequence();
 
         SetSelected(false);
@@ -146,6 +154,7 @@ public partial class Unit : Node2D
         _isAttackAnimating = false;
         _queuedAttackTarget = null;
         _currentAttackAnimationName = string.Empty;
+        RestoreDefaultAnimationPose();
     }
 
     public void SetSelected(bool selected)
@@ -230,6 +239,7 @@ public partial class Unit : Node2D
         _queuedAttackTarget = null;
         _currentAttackAnimationName = string.Empty;
         _isAttackAnimating = false;
+        RestoreDefaultAnimationPose();
     }
 
     public void TickCombat(float delta)
@@ -273,6 +283,7 @@ public partial class Unit : Node2D
         _isAttackAnimating = false;
         _queuedAttackTarget = null;
         _currentAttackAnimationName = string.Empty;
+        RestoreDefaultAnimationPose();
         return true;
     }
 
@@ -369,6 +380,7 @@ public partial class Unit : Node2D
         _moveGridPath.Clear();
         _moveWorldPath.Clear();
         _movePathIndex = 0;
+        ResetJumpStepState();
     }
 
     public bool IsImmediateBacktrack(Vector2I nextGrid)
@@ -387,11 +399,7 @@ public partial class Unit : Node2D
         _isAttackAnimating = false;
         ResetAttackSequence();
         ResetHitFlashVisuals();
-        if (_animationPlayer != null)
-        {
-            _animationPlayer.Stop();
-            _animationPlayer.SpeedScale = 1f;
-        }
+        RestoreDefaultAnimationPose();
     }
 
     public bool TryAdvanceAlongPath(float delta, out Vector2I fromGrid, out Vector2I toGrid)
@@ -407,16 +415,25 @@ public partial class Unit : Node2D
         Vector2 moveTargetWorld = _moveWorldPath[_movePathIndex];
         FaceHorizontal(moveTargetWorld.X - GlobalPosition.X);
 
-        float step = _moveSpeed * delta;
-        GlobalPosition = GlobalPosition.MoveToward(moveTargetWorld, step);
+        if (!_isJumpStepActive)
+        {
+            BeginJumpStep(moveTargetWorld);
+        }
 
-        if (GlobalPosition.DistanceSquaredTo(moveTargetWorld) > 0.0001f)
+        _jumpStepElapsed += delta;
+        float t = _jumpStepDuration <= 0.0001f ? 1f : Mathf.Clamp(_jumpStepElapsed / _jumpStepDuration, 0f, 1f);
+        Vector2 basePosition = _jumpStepStartWorld.Lerp(_jumpStepTargetWorld, t);
+        float arcOffset = Mathf.Sin(t * Mathf.Pi) * _jumpArcHeight;
+        GlobalPosition = basePosition + new Vector2(0f, -arcOffset);
+
+        if (t < 1f)
         {
             return false;
         }
 
-        GlobalPosition = moveTargetWorld;
+        GlobalPosition = _jumpStepTargetWorld;
         toGrid = _moveGridPath[_movePathIndex];
+        ResetJumpStepState();
         return true;
     }
 
@@ -431,6 +448,7 @@ public partial class Unit : Node2D
         SetGridPos(toGrid);
         _previousGridPos = oldGrid;
         _hasPreviousGridPos = true;
+        ResetJumpStepState();
         _movePathIndex++;
 
         if (!HasMovePath)
@@ -442,7 +460,27 @@ public partial class Unit : Node2D
     public void AbortCurrentStep(Vector2 fallbackWorldPosition)
     {
         GlobalPosition = fallbackWorldPosition;
+        ResetJumpStepState();
         ClearMovePath();
+    }
+
+    private void BeginJumpStep(Vector2 targetWorld)
+    {
+        _isJumpStepActive = true;
+        _jumpStepStartWorld = GlobalPosition;
+        _jumpStepTargetWorld = targetWorld;
+        float distance = _jumpStepStartWorld.DistanceTo(_jumpStepTargetWorld);
+        _jumpStepDuration = _moveSpeed <= 0.0001f ? 0f : distance / _moveSpeed;
+        _jumpStepElapsed = 0f;
+    }
+
+    private void ResetJumpStepState()
+    {
+        _isJumpStepActive = false;
+        _jumpStepStartWorld = Vector2.Zero;
+        _jumpStepTargetWorld = Vector2.Zero;
+        _jumpStepDuration = 0f;
+        _jumpStepElapsed = 0f;
     }
 
     public void FaceTarget(Unit target)
@@ -458,6 +496,11 @@ public partial class Unit : Node2D
     public void Face(UnitFacing facing)
     {
         ApplyFacing(facing);
+    }
+
+    public bool HasAttackableCurrentTarget()
+    {
+        return CanDamageTarget(CurrentTarget);
     }
 
     protected virtual bool CanResolveAttackHit(Unit target)
@@ -524,6 +567,33 @@ public partial class Unit : Node2D
         return true;
     }
 
+    private void RestoreDefaultAnimationPose()
+    {
+        if (_animationPlayer == null)
+        {
+            return;
+        }
+
+        _animationPlayer.SpeedScale = 1f;
+
+        if (_animationPlayer.HasAnimation(ResetAnimationName))
+        {
+            Animation resetAnimation = _animationPlayer.GetAnimation(ResetAnimationName);
+            _animationPlayer.Play(ResetAnimationName);
+
+            if (resetAnimation != null)
+            {
+                _animationPlayer.Advance((float)resetAnimation.Length);
+            }
+            else
+            {
+                _animationPlayer.Advance(0f);
+            }
+        }
+
+        _animationPlayer.Stop(true);
+    }
+
     private bool HasAttackAnimationConfigured()
     {
         string animationName = PeekAttackAnimationName();
@@ -563,9 +633,7 @@ public partial class Unit : Node2D
             return false;
         }
 
-        int dx = Mathf.Abs(GridPos.X - target.GridPos.X);
-        int dy = Mathf.Abs(GridPos.Y - target.GridPos.Y);
-        int distance = Mathf.Max(dx, dy);
+        int distance = BattleRoot.GetGridDistance(GridPos, target.GridPos);
         return distance <= _maxAttackRange;
     }
 

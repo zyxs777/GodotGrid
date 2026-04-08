@@ -3,7 +3,7 @@
 [ext_resource type="PackedScene" uid="uid://g248vqvc6758" path="res://Units/Unit.tscn" id="1_1asy8"]
 [ext_resource type="Texture2D" uid="uid://b25meqycoqghu" path="res://Texture/mage.png" id="2_g108s"]
 [ext_resource type="Script" uid="uid://dfxw30dks3r8r" path="res://Scripts/MageUnit.cs" id="2_pb353"]
-[ext_resource type="PackedScene" uid="uid://gpal3adhrchj" path="res://Units/MageStaffBullet.tscn" id="3_3htjw"]
+[ext_resource type="PackedScene" uid="uid://c435oirwfydwr" path="res://Units/MageStaffBullet_Enemy.tscn" id="3_0ifwt"]
 [ext_resource type="Texture2D" uid="uid://c7nkti4rdmxh6" path="res://Texture/staff.png" id="3_pb353"]
 
 [sub_resource type="Animation" id="Animation_g108s"]
@@ -83,9 +83,12 @@ _data = {
 [node name="MageUnit" unique_id=1515707500 instance=ExtResource("1_1asy8")]
 script = ExtResource("2_pb353")
 _attackAnimationNames = PackedStringArray("MageAtk")
-_projectileScene = ExtResource("3_3htjw")
+_projectileScene = ExtResource("3_0ifwt")
 _projectileSpeed = 720.0
-_maxAttackRange = 6
+_moveSpeed = 150.0
+_maxHealth = 150
+_attackSpeed = 0.7999999999999999
+_maxAttackRange = 5
 
 [node name="Sprite2D" parent="Visual" parent_id_path=PackedInt32Array(1929483134) index="0" unique_id=408530905]
 texture = ExtResource("2_g108s")

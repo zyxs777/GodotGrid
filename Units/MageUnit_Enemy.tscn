@@ -86,7 +86,10 @@ _attackAnimationNames = PackedStringArray("MageAtk")
 _projectileScene = ExtResource("3_5gla0")
 _projectileSpeed = 720.0
 _team = 1
-_maxAttackRange = 6
+_moveSpeed = 150.0
+_maxHealth = 150
+_attackSpeed = 0.7999999999999999
+_maxAttackRange = 5
 
 [node name="Sprite2D" parent="Visual" parent_id_path=PackedInt32Array(1929483134) index="0" unique_id=408530905]
 texture = ExtResource("4_f0652")

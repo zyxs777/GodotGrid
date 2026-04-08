@@ -161,6 +161,9 @@ _data = {
 script = ExtResource("2_6pjqf")
 _attackAnimationNames = PackedStringArray("KnightAtk", "KnightAtk1")
 _team = 1
+_moveSpeed = 150.0
+_maxHealth = 300
+_attackPower = 40
 
 [node name="Sprite2D" parent="Visual" parent_id_path=PackedInt32Array(1929483134) index="0" unique_id=408530905]
 texture = ExtResource("3_husta")
