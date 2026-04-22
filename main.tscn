@@ -3,15 +3,23 @@
 [ext_resource type="Script" uid="uid://hv82jcd1i3dj" path="res://Scripts/BattleRoot.cs" id="1_0xm2m"]
 [ext_resource type="PackedScene" uid="uid://c4vtkdxo7ff5s" path="res://tile.tscn" id="2_h2yge"]
 [ext_resource type="PackedScene" uid="uid://8e7swbbjxxle" path="res://Units/KnightUnit.tscn" id="3_1bvp3"]
-[ext_resource type="PackedScene" uid="uid://qdf88kykktyb" path="res://Units/MageUnit.tscn" id="4_1bvp3"]
-[ext_resource type="PackedScene" uid="uid://bins6nu02mt1j" path="res://Units/KnightUnit_Enemy.tscn" id="4_lquwl"]
 [ext_resource type="PackedScene" uid="uid://cejfx3etbnkq0" path="res://Units/MageUnit_Enemy.tscn" id="5_7mycd"]
+[ext_resource type="Texture2D" path="res://PokerGrid/Textures/red_star.png" id="6_jtyf4"]
+[ext_resource type="Texture2D" path="res://PokerGrid/Textures/red_square.png" id="7_juqhh"]
+[ext_resource type="Texture2D" path="res://PokerGrid/Textures/flower.png" id="8_rbnx2"]
+[ext_resource type="Texture2D" path="res://PokerGrid/Textures/black_star.png" id="9_vbmox"]
 
 [node name="BoardRoot" type="Node2D" unique_id=298181189 node_paths=PackedStringArray("_camera2D")]
 script = ExtResource("1_0xm2m")
 _tileScene = ExtResource("2_h2yge")
 _camera2D = NodePath("Camera")
+_boardWidth = 6
+_boardHeight = 6
 _battleStepInterval = 0.02
+_heartSuitTexture = ExtResource("6_jtyf4")
+_diamondSuitTexture = ExtResource("7_juqhh")
+_clubSuitTexture = ExtResource("8_rbnx2")
+_spadeSuitTexture = ExtResource("9_vbmox")
 
 [node name="Board" type="Node2D" parent="." unique_id=1371763624]
 
@@ -20,38 +28,6 @@ _battleStepInterval = 0.02
 [node name="KnightUnit" parent="Units" unique_id=1515707500 instance=ExtResource("3_1bvp3")]
 position = Vector2(-175, 345)
 _attackSpeed = 2.0
-
-[node name="KnightUnit5" parent="Units" unique_id=881872142 instance=ExtResource("3_1bvp3")]
-position = Vector2(-281, 142)
-_attackSpeed = 2.0
-
-[node name="MageUnit2" parent="Units" unique_id=1290050435 instance=ExtResource("5_7mycd")]
-position = Vector2(200, 125)
-scale = Vector2(-1, 1)
-_maxHealth = 200
-_attackPower = 40
-_attackSpeed = 1.5
-
-[node name="MageUnit6" parent="Units" unique_id=1982657054 instance=ExtResource("4_1bvp3")]
-position = Vector2(-178, 147)
-_maxHealth = 300
-_attackPower = 50
-
-[node name="KnightUnit2" parent="Units" unique_id=1980834776 instance=ExtResource("3_1bvp3")]
-position = Vector2(-203, 397)
-_attackSpeed = 2.0
-
-[node name="MageUnit3" parent="Units" unique_id=1271671485 instance=ExtResource("5_7mycd")]
-position = Vector2(172, 177)
-scale = Vector2(-1, 1)
-_maxHealth = 200
-_attackPower = 40
-_attackSpeed = 1.5
-
-[node name="KnightUnit8" parent="Units" unique_id=1821881521 instance=ExtResource("4_lquwl")]
-position = Vector2(119, 277)
-scale = Vector2(-1, 1)
-_maxHealth = 400
 
 [node name="MageUnit5" parent="Units" unique_id=1455174498 instance=ExtResource("5_7mycd")]
 position = Vector2(229, 363)

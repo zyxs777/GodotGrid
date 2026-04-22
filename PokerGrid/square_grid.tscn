@@ -1,0 +1,24 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://PokerGrid/Scripts/SquareGridGenerator.cs" id="1_h8dhq"]
+[ext_resource type="PackedScene" path="res://PokerGrid/Scenes/grid_cell.tscn" id="2_cb4es"]
+[ext_resource type="Texture2D" path="res://PokerGrid/Textures/red_star.png" id="3_pwipb"]
+[ext_resource type="Texture2D" path="res://PokerGrid/Textures/red_square.png" id="4_0r6wa"]
+[ext_resource type="Texture2D" path="res://PokerGrid/Textures/flower.png" id="5_1scmq"]
+[ext_resource type="Texture2D" path="res://PokerGrid/Textures/black_star.png" id="6_a150t"]
+
+[node name="SquareGridScene" type="Node2D"]
+script = ExtResource("1_h8dhq")
+CellScene = ExtResource("2_cb4es")
+Columns = 6
+Rows = 6
+CameraPadding = 1.15
+HeartSuitTexture = ExtResource("3_pwipb")
+DiamondSuitTexture = ExtResource("4_0r6wa")
+ClubSuitTexture = ExtResource("5_1scmq")
+SpadeSuitTexture = ExtResource("6_a150t")
+
+[node name="GeneratedGrid" type="Node2D" parent="."]
+
+[node name="Camera2D" type="Camera2D" parent="."]
+enabled = true

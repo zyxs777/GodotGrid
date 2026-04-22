@@ -141,6 +141,7 @@ public partial class Unit : Node2D
             mouseButton.ButtonIndex == MouseButton.Left)
         {
             EmitSignal(SignalName.Clicked, this);
+            GetViewport()?.SetInputAsHandled();
         }
     }
 
